@@ -11,7 +11,6 @@ export interface SwapFormValues {
 export const useCurrencySwap = () => {
     const { prices, loading, error } = usePrices();
 
-    // useMemo: only recalculate when prices object reference changes
     const tokens = useMemo(() => Object.keys(prices).sort(), [prices]);
 
     const {
@@ -41,7 +40,6 @@ export const useCurrencySwap = () => {
     const toToken = watch('toToken');
     const amountSend = watch('amountSend');
 
-    // useMemo: derived from fromToken, toToken, prices — recalc only when these change
     const exchangeRate = useMemo(() => {
         if (fromToken && toToken && prices[fromToken] && prices[toToken]) {
             return prices[fromToken] / prices[toToken];
@@ -49,16 +47,12 @@ export const useCurrencySwap = () => {
         return 0;
     }, [fromToken, toToken, prices]);
 
-    // useMemo: derived from amountSend & exchangeRate
     const amountReceive = useMemo(() => {
         const num = Number(amountSend);
         if (!amountSend || isNaN(num) || num <= 0) return '';
         return (num * exchangeRate).toFixed(6);
     }, [amountSend, exchangeRate]);
 
-    // useEffect: sync token defaults after API loads — depends on tokens list and setValue
-    // fromToken/toToken are intentionally NOT in deps to avoid re-running on every keystroke;
-    // we only care about syncing when the tokens list itself changes
     useEffect(() => {
         if (tokens.length === 0) return;
         const currentFrom = watch('fromToken');
@@ -72,7 +66,6 @@ export const useCurrencySwap = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [tokens, setValue]);
 
-    // useCallback: stable reference — only changes if amountReceive changes (captured in closure)
     const onSubmit = useCallback((data: SwapFormValues) => {
         setFormError('');
 
@@ -88,7 +81,6 @@ export const useCurrencySwap = () => {
         setIsConfirmOpen(true);
     }, [amountReceive]);
 
-    // useCallback: stable reference, only changes if pendingSwapData/amountReceive change
     const handleConfirmSwap = useCallback(() => {
         setIsConfirmOpen(false);
         if (!pendingSwapData) return;
@@ -112,7 +104,6 @@ export const useCurrencySwap = () => {
         }, 2000);
     }, [pendingSwapData, amountReceive, setValue]);
 
-    // useCallback: no external deps, always stable
     const handleSwitchTokens = useCallback(() => {
         const currentFrom = watch('fromToken');
         const currentTo = watch('toToken');
@@ -122,52 +113,37 @@ export const useCurrencySwap = () => {
         setFormError('');
     }, [watch, setValue]);
 
-    // useCallback: no external deps, always stable
     const handleCloseConfirm = useCallback(() => {
         setIsConfirmOpen(false);
         setPendingSwapData(null);
     }, []);
 
-    // useCallback: no external deps, always stable
     const handleClosePopup = useCallback(() => {
         setIsPopupOpen(false);
     }, []);
 
     return {
-        // prices state
         loading,
         error,
         tokens,
-
-        // react-hook-form
         control,
         handleSubmit,
         errors,
         isValid,
         onSubmit,
-
-        // derived values
         fromToken,
         toToken,
         exchangeRate,
         amountReceive,
-
-        // swap state
         isSwapping,
         formError,
-
-        // confirm popup
         isConfirmOpen,
         confirmMessage,
         handleConfirmSwap,
         handleCloseConfirm,
-
-        // success popup
         isPopupOpen,
         popupMessage,
         handleClosePopup,
-
-        // actions
         handleSwitchTokens,
     };
 };

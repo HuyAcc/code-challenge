@@ -1,9 +1,9 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { useCurrencySwap } from '../hooks/useCurrencySwap';
-import { TokenSelect } from './TokenSelect';
-import { SuccessPopup } from './SuccessPopup';
-import { ConfirmPopup } from './ConfirmPopup';
+import { useCurrencySwap } from '../../hooks/useCurrencySwap';
+import { TokenSelect } from '../TokenSelect/TokenSelect';
+import { SuccessPopup } from '../SuccessPopup/SuccessPopup';
+import { ConfirmPopup } from '../ConfirmPopup/ConfirmPopup';
 import './CurrencySwap.css';
 
 export const CurrencySwap: React.FC = () => {

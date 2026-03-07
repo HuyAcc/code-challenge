@@ -14,10 +14,6 @@ export const TokenSelect: React.FC<TokenSelectProps> = ({ tokens, value, onChang
     const [search, setSearch] = useState('');
     const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
     const wrapperRef = useRef<HTMLDivElement>(null);
-
-    // useEffect: attach/detach click-outside listener
-    // wrapperRef is a stable ref object — its identity never changes, so it's NOT needed in deps.
-    // We only need to run this once on mount and clean up on unmount.
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -28,22 +24,19 @@ export const TokenSelect: React.FC<TokenSelectProps> = ({ tokens, value, onChang
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, []); // empty deps — intentional, wrapperRef.current is accessed at event time, not at setup time
+    }, []);
 
-    // useMemo: only recalculate filtered list when tokens or search changes
     const filteredTokens = useMemo(
         () => tokens.filter(t => t.toLowerCase().includes(search.toLowerCase())),
         [tokens, search]
     );
 
-    // useCallback: stable handler reference
     const handleSelect = useCallback((token: string) => {
         onChange(token);
         setIsOpen(false);
         setSearch('');
     }, [onChange]);
 
-    // useCallback: stable handler — track which token icons failed to load
     const handleImgError = useCallback((token: string) => {
         setImgErrors(prev => ({ ...prev, [token]: true }));
     }, []);
@@ -102,7 +95,6 @@ export const TokenSelect: React.FC<TokenSelectProps> = ({ tokens, value, onChang
                     </div>
                     <ul className="token-list">
                         {filteredTokens.map(token => (
-                            // key = token symbol (unique string), NOT index
                             <li
                                 key={token}
                                 role="option"

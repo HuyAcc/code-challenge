@@ -1,4 +1,4 @@
-import { CurrencySwap } from '../components/CurrencySwap';
+import { CurrencySwap } from '../components/CurrencySwap/CurrencySwap';
 import './SwapPage.css';
 
 export const SwapPage = () => {

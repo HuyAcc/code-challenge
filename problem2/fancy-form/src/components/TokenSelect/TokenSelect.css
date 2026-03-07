@@ -42,7 +42,6 @@
     flex-shrink: 0;
 }
 
-/* Fallback when token SVG fails to load */
 .token-icon-fallback {
     display: inline-flex;
     align-items: center;
