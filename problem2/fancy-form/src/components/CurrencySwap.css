@@ -85,10 +85,27 @@
     width: 100%;
     outline: none;
     padding: 0;
+    /* Prevent text overflow on small screens */
+    min-width: 0;
 }
 
 .amount-input::placeholder {
     color: rgba(255, 255, 255, 0.2);
+}
+
+.amount-input.input-error {
+    color: var(--error-color, #ef4444);
+}
+
+/* Remove browser number spinner arrows */
+.amount-input::-webkit-outer-spin-button,
+.amount-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.amount-input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .token-price-info {
@@ -279,13 +296,61 @@
     }
 }
 
-/* Hide number input spinners */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+/* ── Responsive: 480px ── */
+@media (max-width: 480px) {
+    .swap-card {
+        border-radius: 16px;
+        padding: 14px 14px;
+    }
+
+    .amount-input {
+        font-size: 28px;
+    }
+
+    .submit-btn {
+        font-size: 16px;
+        padding: 14px;
+    }
 }
 
-input[type=number] {
-    -moz-appearance: textfield;
+/* ── Responsive: 320px (smallest mobile) ── */
+@media (max-width: 360px) {
+    .swap-card {
+        border-radius: 12px;
+        padding: 12px 10px;
+    }
+
+    .swap-header h2 {
+        font-size: 16px;
+    }
+
+    .amount-input {
+        font-size: 22px;
+    }
+
+    .input-group {
+        padding: 12px;
+        border-radius: 14px;
+    }
+
+    .input-container {
+        gap: 6px;
+    }
+
+    .submit-btn {
+        font-size: 15px;
+        padding: 12px;
+        border-radius: 12px;
+        margin-top: 12px;
+    }
+
+    .exchange-rate-info {
+        font-size: 12px;
+        padding: 10px 4px 4px;
+    }
+
+    .error-message {
+        font-size: 12px;
+        padding: 10px;
+    }
 }

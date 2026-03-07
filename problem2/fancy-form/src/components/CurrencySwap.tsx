@@ -1,109 +1,36 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
-import { usePrices } from '../hooks/usePrices';
+import React from 'react';
+import { Controller } from 'react-hook-form';
+import { useCurrencySwap } from '../hooks/useCurrencySwap';
 import { TokenSelect } from './TokenSelect';
 import { SuccessPopup } from './SuccessPopup';
 import { ConfirmPopup } from './ConfirmPopup';
 import './CurrencySwap.css';
 
-interface SwapFormValues {
-    fromToken: string;
-    toToken: string;
-    amountSend: number | string;
-}
-
 export const CurrencySwap: React.FC = () => {
-    const { prices, loading, error } = usePrices();
-
-    const tokens = useMemo(() => Object.keys(prices).sort(), [prices]);
-
     const {
+        loading,
+        error,
+        tokens,
         control,
         handleSubmit,
-        watch,
-        setValue,
-        formState: { errors, isValid },
-    } = useForm<SwapFormValues>({
-        defaultValues: {
-            fromToken: 'ETH',
-            toToken: 'USDC',
-            amountSend: '',
-        },
-        mode: 'onChange',
-    });
-
-    const [isSwapping, setIsSwapping] = useState<boolean>(false);
-    const [popupMessage, setPopupMessage] = useState<string>('');
-    const [isPopupOpen, setIsPopupOpen] = useState<boolean>(false);
-
-    const [isConfirmOpen, setIsConfirmOpen] = useState<boolean>(false);
-    const [confirmMessage, setConfirmMessage] = useState<string>('');
-    const [pendingSwapData, setPendingSwapData] = useState<SwapFormValues | null>(null);
-
-    const [formError, setFormError] = useState<string>('');
-
-    const fromToken = watch('fromToken');
-    const toToken = watch('toToken');
-    const amountSend = watch('amountSend');
-
-    const exchangeRate = useMemo(() => {
-        if (fromToken && toToken && prices[fromToken] && prices[toToken]) {
-            return prices[fromToken] / prices[toToken];
-        }
-        return 0;
-    }, [fromToken, toToken, prices]);
-
-    const amountReceive = useMemo(() => {
-        if (!amountSend || isNaN(Number(amountSend))) return '';
-        return (Number(amountSend) * exchangeRate).toFixed(6);
-    }, [amountSend, exchangeRate]);
-
-    useEffect(() => {
-        if (tokens.length > 0) {
-            if (!tokens.includes(fromToken)) {
-                setValue('fromToken', tokens[0]);
-            }
-            if (!tokens.includes(toToken)) {
-                setValue('toToken', tokens.length > 1 ? tokens[1] : tokens[0]);
-            }
-        }
-    }, [tokens, fromToken, toToken, setValue]);
-
-    const onSubmit = (data: SwapFormValues) => {
-        setFormError('');
-
-        if (data.fromToken === data.toToken) {
-            setFormError('Cannot swap the same token.');
-            return;
-        }
-
-        setPendingSwapData(data);
-        setConfirmMessage(`Are you sure you want to swap ${data.amountSend} ${data.fromToken} for ${amountReceive} ${data.toToken}?`);
-        setIsConfirmOpen(true);
-    };
-
-    const handleConfirmSwap = () => {
-        setIsConfirmOpen(false);
-        if (!pendingSwapData) return;
-
-        setIsSwapping(true);
-        setTimeout(() => {
-            setIsSwapping(false);
-            setPopupMessage(`Successfully swapped ${pendingSwapData.amountSend} ${pendingSwapData.fromToken} for ${amountReceive} ${pendingSwapData.toToken}!`);
-            setIsPopupOpen(true);
-            setValue('amountSend', '');
-            setPendingSwapData(null);
-        }, 2000);
-    };
-
-    const handleSwitchTokens = () => {
-        const currentFrom = watch('fromToken');
-        const currentTo = watch('toToken');
-        setValue('fromToken', currentTo);
-        setValue('toToken', currentFrom);
-        setValue('amountSend', '');
-        setFormError('');
-    };
+        errors,
+        isValid,
+        onSubmit,
+        fromToken,
+        toToken,
+        exchangeRate,
+        amountReceive,
+        isSwapping,
+        formError,
+        isConfirmOpen,
+        confirmMessage,
+        handleConfirmSwap,
+        handleCloseConfirm,
+        isPopupOpen,
+        popupMessage,
+        handleClosePopup,
+        handleSwitchTokens,
+    } = useCurrencySwap();
 
     if (loading) {
         return (
@@ -130,11 +57,11 @@ export const CurrencySwap: React.FC = () => {
                 <h2>Swap</h2>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="swap-form">
+            <form onSubmit={handleSubmit(onSubmit)} className="swap-form" noValidate>
 
                 <div className="input-group">
                     <div className="input-group-header">
-                        <label>Amount to send</label>
+                        <label htmlFor="amountSend">Amount to send</label>
                     </div>
                     <div className="input-container">
                         <Controller
@@ -142,16 +69,39 @@ export const CurrencySwap: React.FC = () => {
                             control={control}
                             rules={{
                                 required: 'Amount is required',
-                                validate: value => Number(value) > 0 || 'Amount must be greater than 0'
+                                validate: (value) => {
+                                    const num = Number(value);
+                                    if (isNaN(num)) return 'Please enter a valid number';
+                                    if (num <= 0) return 'Amount must be greater than 0';
+                                    return true;
+                                },
                             }}
                             render={({ field }) => (
                                 <input
+                                    id="amountSend"
                                     {...field}
-                                    type="number"
-                                    className="amount-input"
-                                    placeholder="0"
-                                    min="0"
-                                    step="any"
+                                    type="text"
+                                    inputMode="decimal"
+                                    className={`amount-input ${errors.amountSend ? 'input-error' : ''}`}
+                                    placeholder="0.00"
+                                    autoComplete="off"
+                                    onKeyDown={(e) => {
+                                        const allowed = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', '.'];
+                                        if (allowed.includes(e.key)) return;
+                                        if (e.key === '.' && String(field.value).includes('.')) {
+                                            e.preventDefault();
+                                            return;
+                                        }
+                                        if (!/^\d$/.test(e.key)) {
+                                            e.preventDefault();
+                                        }
+                                    }}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                            field.onChange(val);
+                                        }
+                                    }}
                                 />
                             )}
                         />
@@ -172,7 +122,13 @@ export const CurrencySwap: React.FC = () => {
 
                 <div className="switch-container">
                     <div className="switch-line"></div>
-                    <button type="button" className={`switch-btn ${isSwapping ? 'spinning' : ''}`} onClick={handleSwitchTokens}>
+                    <button
+                        type="button"
+                        className={`switch-btn ${isSwapping ? 'spinning' : ''}`}
+                        onClick={handleSwitchTokens}
+                        aria-label="Switch tokens"
+                        disabled={isSwapping}
+                    >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
                             <polyline points="19 12 12 19 5 12"></polyline>
@@ -188,9 +144,10 @@ export const CurrencySwap: React.FC = () => {
                         <input
                             type="text"
                             className="amount-input"
-                            placeholder="0"
+                            placeholder="0.00"
                             value={amountReceive}
                             readOnly
+                            aria-label="Amount to receive"
                         />
                         <Controller
                             name="toToken"
@@ -207,12 +164,16 @@ export const CurrencySwap: React.FC = () => {
                     </div>
                 </div>
 
-                {errors.amountSend && <div className="error-message">{errors.amountSend.message}</div>}
-                {formError && !errors.amountSend && <div className="error-message">{formError}</div>}
+                {errors.amountSend && (
+                    <div className="error-message" role="alert">{errors.amountSend.message}</div>
+                )}
+                {formError && !errors.amountSend && (
+                    <div className="error-message" role="alert">{formError}</div>
+                )}
 
                 {exchangeRate > 0 && !formError && !errors.amountSend && (
                     <div className="exchange-rate-info">
-                        1 {fromToken} = {exchangeRate.toFixed(6)} {toToken}
+                        <span>1 {fromToken} = {exchangeRate.toFixed(6)} {toToken}</span>
                     </div>
                 )}
 
@@ -233,16 +194,13 @@ export const CurrencySwap: React.FC = () => {
                 isOpen={isConfirmOpen}
                 message={confirmMessage}
                 onConfirm={handleConfirmSwap}
-                onClose={() => {
-                    setIsConfirmOpen(false);
-                    setPendingSwapData(null);
-                }}
+                onClose={handleCloseConfirm}
             />
 
             <SuccessPopup
                 isOpen={isPopupOpen}
                 message={popupMessage}
-                onClose={() => setIsPopupOpen(false)}
+                onClose={handleClosePopup}
             />
         </div>
     );
